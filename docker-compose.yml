@@ -1,0 +1,8 @@
+services:
+  telegram-bot:
+    container_name: watermarkBOT
+    build: ./app
+    env_file: 
+      - ./app/.env
+    restart: unless-stopped
+

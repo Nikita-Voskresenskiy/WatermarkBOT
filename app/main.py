@@ -298,7 +298,7 @@ async def handle_watermark_text(message: types.Message):
     user_id = message.from_user.id
 
     if user_id not in user_data or user_data[user_id]["state"] != UserState.WAITING_FOR_TEXT:
-        await message.answer("Пожалуйста, сначала отправьте хотя бы одно фото")
+        await message.answer("Сначала отправьте хотя бы одно фото. Если вы уже отправили фото, нажмите 'задать текст'")
         return
 
     # Store the watermark text
