@@ -10,18 +10,10 @@ from watermark_algorithm import apply_watermark
 from typing import List, Dict, Any, Callable, Awaitable
 import json
 from aiogram import BaseMiddleware
-
-with open('settings.json', 'r', encoding='utf-8') as file:
-    settings = json.load(file)
-
+from env_settings import env
 
 # Bot setup
-TOKEN = settings["token"]
-CHANNEL_ID = settings["channel_id"]  # Private channel ID (negative for channels)
-ADMIN_ID = settings["admin_id"]  # Your admin ID for logs
-CHANNEL_USERNAME = settings["channel_username"]
-
-bot = Bot(token=TOKEN)
+bot = Bot(token=env.BOT_TOKEN)
 dp = Dispatcher()
 
 
@@ -49,7 +41,7 @@ def init_user_data(user_id):
 
 async def check_subscription(user_id: int) -> bool:
     try:
-        member = await bot.get_chat_member(chat_id=CHANNEL_ID, user_id=user_id)
+        member = await bot.get_chat_member(chat_id=env.CHANNEL_ID, user_id=user_id)
         return member.status in ['member', 'administrator', 'creator']
     except Exception as e:
         logger.error(f"Error checking subscription for {user_id}: {e}")
@@ -60,7 +52,7 @@ def get_subscription_keyboard():
     builder = InlineKeyboardBuilder()
     builder.add(InlineKeyboardButton(
         text="Подписаться на канал",
-        url=f"https://t.me/{CHANNEL_USERNAME}")  # Replace with your channel username
+        url=f"https://t.me/{env.CHANNEL_USERNAME}")  # Replace with your channel username
     )
     builder.add(InlineKeyboardButton(
         text="Проверить подписку",
