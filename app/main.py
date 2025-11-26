@@ -3,7 +3,6 @@ from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-import logging
 import os
 from pathlib import Path
 from watermark_algorithm import apply_watermark
@@ -11,6 +10,7 @@ from typing import List, Dict, Any, Callable, Awaitable
 import json
 from aiogram import BaseMiddleware
 from env_settings import env
+from logger_settings import logger
 
 # Bot setup
 bot = Bot(token=env.BOT_TOKEN)
@@ -26,9 +26,6 @@ class UserState:
 # User data storage (in production use database)
 user_data = {}
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 def init_user_data(user_id):
     """Initialize or reset user data with all required fields"""
@@ -87,18 +84,6 @@ def get_main_keyboard():
     )
     builder.add(InlineKeyboardButton(
         text="🔡 задать текст",
-        callback_data="to_text")
-    )
-    return builder.as_markup()
-
-def get_main_keyboard2():
-    builder = InlineKeyboardBuilder()
-    builder.add(InlineKeyboardButton(
-        text="↪️ начать заново",
-        callback_data="restart")
-    )
-    builder.add(InlineKeyboardButton(
-        text="🔡 исправить текст",
         callback_data="to_text")
     )
     return builder.as_markup()
@@ -324,6 +309,7 @@ async def handle_watermark_text(message: types.Message):
             output_path = output_dir / output_filename
 
             # Apply watermark
+            logger.debug(f"Applying watermark on file {output_path}")
             success = apply_watermark(
                 file_path=str(original_path),
                 watermark_text=watermark_text,
@@ -331,6 +317,7 @@ async def handle_watermark_text(message: types.Message):
             )
 
             if success:
+                logger.debug(f"Success applying watermark on file {output_path}")
                 processed_files += 1
                 # Store watermarked file path separately
                 user_data[user_id]["watermarked_photos"].append(str(output_path))
@@ -338,16 +325,19 @@ async def handle_watermark_text(message: types.Message):
                 # Send watermarked file to user
                 try:
                     if output_path.suffix.lower() in ['.jpg', '.jpeg', '.png']:
+                        logger.debug(f"Sending photo {output_path}")
                         await message.answer_photo(
                             types.FSInputFile(output_path))
+                        logger.debug(f"Photo sent {output_path}")
                     else:
+                        logger.debug(f"Sending file {output_path}")
                         await message.answer_document(
                             types.FSInputFile(output_path))
+                        logger.debug(f"File sent {output_path}")
                     sent_files += 1
                 except Exception as send_error:
                     logger.error(f"Error sending file {output_path}: {send_error}")
                     await message.answer(f"Не удалось отправить файл {output_filename}")
-
             else:
                 logger.error(f"Watermark failed for {file_path}")
                 await message.answer(f"Ошибка при обработке файла {original_path.name}")
@@ -372,7 +362,7 @@ async def handle_watermark_text(message: types.Message):
 
     await message.answer(
         result_message,
-        reply_markup=get_main_keyboard2()
+        reply_markup=get_main_keyboard()
     )
 
     # Reset state after processing
@@ -425,7 +415,7 @@ async def text_handler(message: types.Message):
     # Check subscription for every message
     if not await check_subscription(user_id):
         await message.answer(
-            "Для продолжения необходимо подписаться на наш канал.",
+            "Для продолжения необходимо подписаться на канал.",
             reply_markup=get_subscription_keyboard()
         )
         return
